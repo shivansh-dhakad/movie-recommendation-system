@@ -7,8 +7,8 @@ loading_bp = Blueprint("loading_bp", __name__)
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="Shivansh@1843",
-    database="movie_recommender"
+    password="password",
+    database="database name"
 )
 cursor = db.cursor(dictionary=True)
 
@@ -52,4 +52,5 @@ def login():
     if user and check_password_hash(user["password"], password):
         return jsonify({"success": True, "message": "Login successful"})
     else:
+
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
