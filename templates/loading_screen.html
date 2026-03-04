@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Recommender System</title>
+    <style>
+      /* Basic reset and full screen */
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+        background-color: #141414; /* Dark background */
+      }
+
+      /* Loader container */
+      #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #141414;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      /* Heading fade-in */
+      .fade-in-heading {
+        color: #e50914; /* Netflix red */
+        font-size: 3em;
+        text-align: center;
+        opacity: 0;
+        animation: fadeInHeading 1.5s forwards;
+      }
+
+      @keyframes fadeInHeading {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Spinner styling */
+      .spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #e50914;
+        border-top: 6px solid transparent;
+        border-radius: 50%;
+        margin-top: 30px;
+        opacity: 0;
+        animation: fadeInSpinner 0.5s forwards;
+      }
+
+      @keyframes fadeInSpinner {
+        0% {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* Spinner rotation */
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinner.spin {
+        animation: spin 1s linear infinite;
+      }
+
+      /* Hide main content initially */
+      #main-content {
+        display: none;
+        text-align: center;
+        color: #fff;
+        padding-top: 50px;
+      }
+      /* Tabbar */
+      .tabbar {
+        display: flex;
+        justify-content: center;
+        background-color: #1f1f1f;
+        border-radius: 10px;
+        margin: 20px auto;
+        max-width: 400px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      }
+
+      .tabbar button {
+        flex: 1;
+        background: #1f1f1f;
+        border: none;
+        color: #fff;
+        padding: 15px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .tabbar button:hover,
+      .tabbar button.active {
+        color: #1e90ff;
+        background: #2a2a2a;
+      }
+
+      /* Tab content cards */
+      .tab-content {
+        display: none;
+        max-width: 400px;
+        margin: 20px auto;
+        background-color: #2a2a2a;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.8s forwards;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .tab-content input {
+        width: 90%;
+        padding: 12px;
+        margin: 10px 0;
+        border: none;
+        border-radius: 6px;
+        background-color: #141414;
+        color: #fff;
+      }
+
+      .tab-content input::placeholder {
+        color: #ccc;
+      }
+      .tab-content input:hover,
+      .tab-content input:focus {
+        box-shadow: 0 0 8px 2px #1e90ff; /* subtle blue glow */
+        background-color: #1a1a1a;
+      }
+      .tab-content button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        background-color: #e50914;
+        border: none;
+        color: #fff;
+        font-size: 1em;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .tab-content button:hover {
+        background-color: #ff1c1c;
+      }
+
+      /* Additional info section */
+      .info {
+        max-width: 800px;
+        margin: 40px auto;
+        line-height: 1.6;
+        color: #ccc;
+        animation: fadeIn 1s ease forwards;
+      }
+
+      .info h2 {
+        color: #e50914;
+        margin-bottom: 10px;
+      }
+
+      .info ul li {
+        margin: 5px 0;
+      }
+
+      /* Fade-in animation for elements */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loader -->
+    <div id="loader">
+      <h1 class="fade-in-heading">Movie <br />Recommendation</h1>
+      <div class="spinner" id="spinner"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+      <!-- Tabbar -->
+      <div class="tabbar">
+        <button class="tab-link active" onclick="openTab(event, 'signup')">
+          Sign Up
+        </button>
+        <button class="tab-link" onclick="openTab(event, 'login')">
+          Login
+        </button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div id="signup" class="tab-content active">
+        <h3>Sign Up</h3>
+        <input type="text" placeholder="Full Name" />
+        <input type="text" placeholder="Login Id" />
+        <input type="password" placeholder="Password" />
+        <button onclick="signup()">Sign Up</button>
+      </div>
+
+      <div id="login" class="tab-content">
+        <h3>Login</h3>
+        <input type="text" placeholder="Login Id" />
+        <input type="password" placeholder="Password" />
+        <button onclick="login()">Login</button>
+      </div>
+
+      <!-- Useful information section -->
+      <div class="info">
+        <h2>About Movie Recommendations</h2>
+        <p>
+          Discover the best movies based on your preferences. Our system uses
+          advanced algorithms to suggest movies you will love.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const heading = document.querySelector(".fade-in-heading");
+      const spinner = document.getElementById("spinner");
+      const loader = document.getElementById("loader");
+      const mainContent = document.getElementById("main-content");
+
+      window.addEventListener("load", () => {
+        // Step 1: Show heading fade-in (already animates via CSS)
+        setTimeout(() => {
+          // Step 2: Show spinner after heading
+          spinner.classList.add("spin");
+          spinner.style.opacity = "1";
+        }, 1500); // after heading animation
+
+        // Step 3: Hide loader and show main content
+        setTimeout(() => {
+          loader.style.display = "none";
+          mainContent.style.display = "block";
+        }, 3500); // 2s after spinner appears
+      });
+      // Tab functionality
+      function openTab(evt, tabName) {
+        const tabContents = document.querySelectorAll(".tab-content");
+        const tabLinks = document.querySelectorAll(".tab-link");
+
+        tabContents.forEach((tc) => tc.classList.remove("active"));
+        tabLinks.forEach((tl) => tl.classList.remove("active"));
+
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+      }
+
+      function signup() {
+        const inputs = document.querySelectorAll("#signup input");
+        const fullName = inputs[0].value;
+        const userId = inputs[1].value;
+        const password = inputs[2].value;
+
+        fetch("/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: userId,
+            name: fullName,
+            password: password,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            alert(data.message);
+          });
+      }
+
+      function login() {
+        const inputs = document.querySelectorAll("#login input");
+        const userId = inputs[0].value; // Login Id
+        const password = inputs[1].value;
+
+        fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: userId,
+            password: password,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              window.location.href = "/recommendor";
+            } else {
+              alert(data.message);
+            }
+          });
+      }
+    </script>
+  </body>
+</html>

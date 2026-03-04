@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Movie Recommender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      body {
+        margin: 0;
+        background-color: #141414;
+        font-family: Arial, sans-serif;
+        color: white;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        background: #1f1f1f;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .topbar button {
+        background: #e50914;
+        border: none;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      .topbar input {
+        width: 50%;
+        padding: 10px;
+        border-radius: 20px;
+        border: none;
+        outline: none;
+        background: #2a2a2a;
+        color: white;
+      }
+
+      .genre-section {
+        margin: 20px;
+        overflow: visible;
+      }
+
+      .genre-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .genre-title {
+        margin-left: 20px;
+        font-size: 1.4em;
+      }
+      .genre-section hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(to right, #e50914, transparent);
+        margin: 8px 20px 12px 20px;
+        opacity: 0.8;
+      }
+      .movie-row {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        overflow-y: visible;
+        padding-bottom: 40px;
+      }
+
+      .movie-card {
+        margin-left: 15px;
+        position: relative;
+        min-width: 180px;
+        height: 270px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .movie-card:hover {
+        transform: scale(1.25);
+        z-index: 999;
+      }
+      .movie-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .movie-info {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        padding: 10px;
+        opacity: 0;
+        transition: 0.3s;
+        font-size: 0.75em;
+        overflow-y: auto;
+        border-radius: 10px;
+      }
+
+      .movie-card:hover .movie-info {
+        opacity: 1;
+      }
+      .search-results {
+        display: none;
+        padding: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+      }
+      .search-box {
+        position: relative;
+        width: 50%;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 35px;
+        border-radius: 20px;
+        border: none;
+        outline: none;
+        background: #2a2a2a;
+        color: white;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #aaa;
+      }
+
+      .suggestions {
+        position: absolute;
+        top: 45px;
+        width: 100%;
+        background: #1f1f1f;
+        border-radius: 10px;
+        max-height: 250px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+      }
+
+      .suggestions div {
+        padding: 10px;
+        cursor: pointer;
+      }
+
+      .suggestions div:hover {
+        background: #333;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="topbar">
+      <button>☰ Filter</button>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search movies..."
+          oninput="showSuggestions()"
+        />
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="homeContent"></div>
+    <div id="searchResults" class="search-results"></div>
+
+    <script>
+      const homeContent = document.getElementById("homeContent");
+      const searchResults = document.getElementById("searchResults");
+
+      const HOME_API = "http://127.0.0.1:5000/api/home";
+      const SEARCH_API = "http://127.0.0.1:5000/api/search?q=";
+
+      // 🔹 CREATE MOVIE CARD
+      function createMovieCard(m) {
+        const card = document.createElement("div");
+        card.className = "movie-card";
+
+        card.innerHTML = `
+    <img src="${m.poster}">
+    <div class="movie-info">
+      <h4>${m.title}</h4>
+      <p>${m.overview || "No overview"}</p>
+      <p><b>Release:</b> ${m.release || "N/A"}</p>
+    </div>
+  `;
+        return card;
+      }
+
+      // 🔹 LOAD HOME (BY TAGS)
+      async function loadHome() {
+        const res = await fetch(HOME_API);
+        const data = await res.json();
+
+        homeContent.innerHTML = "";
+
+        for (const tag in data) {
+          const section = document.createElement("div");
+          section.className = "genre-section";
+
+          const header = document.createElement("div");
+          header.className = "genre-header";
+
+          const title = document.createElement("div");
+          title.className = "genre-title";
+          title.innerText = tag;
+
+          header.appendChild(title);
+
+          const row = document.createElement("div");
+          row.className = "movie-row";
+
+          data[tag].forEach((m) => row.appendChild(createMovieCard(m)));
+          const hr = document.createElement("hr");
+          section.appendChild(header);
+          section.appendChild(hr);
+          section.appendChild(row);
+          homeContent.appendChild(section);
+        }
+      }
+
+      // 🔹 SEARCH + RECOMMEND
+      async function searchMovies() {
+        const q = document.getElementById("searchInput").value.trim();
+
+        if (!q) {
+          homeContent.style.display = "block";
+          searchResults.style.display = "none";
+          loadHome();
+          return;
+        }
+
+        const res = await fetch(SEARCH_API + encodeURIComponent(q));
+        const data = await res.json();
+
+        homeContent.style.display = "none";
+        searchResults.style.display = "grid";
+        searchResults.innerHTML = "";
+
+        data.forEach((m) => searchResults.appendChild(createMovieCard(m)));
+      }
+
+      // 🔹 LOGOUT
+      function logout() {
+        window.location.href = "/";
+      }
+      let debounceTimer = null;
+
+      // 🔹 SHOW SUGGESTIONS
+      async function showSuggestions() {
+        const q = document.getElementById("searchInput").value.trim();
+        const box = document.getElementById("suggestions");
+
+        if (!q) {
+          box.style.display = "none";
+          homeContent.style.display = "block";
+          searchResults.style.display = "none";
+          loadHome();
+          return;
+        }
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+          const res = await fetch(SEARCH_API + encodeURIComponent(q));
+          const data = await res.json();
+
+          box.innerHTML = "";
+          box.style.display = "block";
+
+          data.slice(0, 5).forEach((m) => {
+            const div = document.createElement("div");
+            div.innerText = m.title;
+            div.onclick = () => selectSuggestion(m.title);
+            box.appendChild(div);
+          });
+        }, 300);
+      }
+
+      // 🔹 SELECT FROM SUGGESTION
+      function selectSuggestion(title) {
+        document.getElementById("searchInput").value = title;
+        document.getElementById("suggestions").style.display = "none";
+        searchMovies();
+      }
+
+      // 🔹 SEARCH + RECOMMEND
+      async function searchMovies() {
+        const q = document.getElementById("searchInput").value.trim();
+        const box = document.getElementById("suggestions");
+
+        box.style.display = "none";
+
+        if (!q) {
+          homeContent.style.display = "block";
+          searchResults.style.display = "none";
+          loadHome();
+          return;
+        }
+
+        const res = await fetch(SEARCH_API + encodeURIComponent(q));
+        const data = await res.json();
+
+        homeContent.style.display = "none";
+        searchResults.style.display = "grid";
+        searchResults.innerHTML = "";
+
+        data.forEach((m) => searchResults.appendChild(createMovieCard(m)));
+      }
+      // INIT
+      loadHome();
+    </script>
+  </body>
+</html>
